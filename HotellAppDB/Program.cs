@@ -33,7 +33,7 @@ namespace HotellAppDB
             while (true)
             {
                 Console.Clear();
-                Console.WriteLine("Välkommen till HotellAppen!");
+                Console.WriteLine("Välkommen till HotellApp!");
                 Console.WriteLine("1. Lägg till rum");
                 Console.WriteLine("2. Lägg till kund");
                 Console.WriteLine("3. Lägg till bokning");
