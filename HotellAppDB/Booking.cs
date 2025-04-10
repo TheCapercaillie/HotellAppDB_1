@@ -17,5 +17,7 @@ namespace HotellAppDB.Data
 
         public DateTime CheckInDate { get; set; }
         public DateTime CheckOutDate { get; set; }
+
+        public decimal TotalPrice { get; set; }
     }
 }

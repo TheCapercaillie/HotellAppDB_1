@@ -12,7 +12,7 @@ namespace HotellAppDB
 
         static void Main(string[] args)
         {
-            
+
             var builder = new ConfigurationBuilder().AddJsonFile($"appsettings.json", true, true);
 
             var config = builder.Build();
@@ -62,16 +62,59 @@ namespace HotellAppDB
             }
             static void AddRoom(ApplicationDbContext db)
             {
-                Console.Write("Rumsnummer: ");
-                string roomNumber = Console.ReadLine()!;
+                int roomNumber;
+                while (true)
+                {
+                    Console.Write("Rumsnummer (1-20): ");
+                    roomNumber = int.Parse(Console.ReadLine()!);
 
-                Console.Write("Rumstyp (Enkel/Dubbel/Svit): ");
-                string type = Console.ReadLine()!;
+                    if (roomNumber < 1 || roomNumber > 20)
+                    {
+                        Console.WriteLine("Ogiltigt rumsnummer. Ange ett nummer mellan 1 och 20.");
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
 
-                Console.Write("Pris per natt: ");
-                decimal price = decimal.Parse(Console.ReadLine()!);
+                string type;
+                while (true)
+                {
+                    Console.Write("Rumstyp (Enkel/Dubbel): ");
+                    type = Console.ReadLine()!;
 
-                db.Rooms.Add(new Room { RoomNumber = roomNumber, Type = type, PricePerNight = price });
+                    if (type != "Enkel" && type != "Dubbel")
+                    {
+                        Console.WriteLine("Ogiltig rumstyp. Vänligen ange 'Enkel' eller 'Dubbel'.");
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+
+                int extraBeds = 0;
+                if (type == "Dubbel")
+                {
+                    while (true)
+                    {
+                        Console.Write("Antal extra sängar (0-2): ");
+                        extraBeds = int.Parse(Console.ReadLine()!);
+
+                        if (extraBeds >= 0 && extraBeds <= 2)
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            Console.WriteLine("Ogiltigt antal extra sängar. Ange ett tal mellan 0 och 2.");
+                        }
+                    }
+                }
+
+
+                db.Rooms.Add(new Room { RoomNumber = roomNumber.ToString(), Type = type, ExtraBeds = extraBeds });
                 db.SaveChanges();
                 Console.WriteLine("Rum tillagt!");
             }
@@ -99,16 +142,100 @@ namespace HotellAppDB
                 Console.Write("Rum-ID: ");
                 int roomId = int.Parse(Console.ReadLine()!);
 
-                Console.Write("Incheckningsdatum (YYYY-MM-DD): ");
-                DateTime checkIn = DateTime.Parse(Console.ReadLine()!);
+                DateTime checkIn;
+                DateTime checkOut;
 
-                Console.Write("Utcheckningsdatum (YYYY-MM-DD): ");
-                DateTime checkOut = DateTime.Parse(Console.ReadLine()!);
+                while (true)
+                {
+                    Console.Write("Incheckningsdatum (YYYY-MM-DD): ");
+                    if (DateTime.TryParse(Console.ReadLine(), out checkIn))
+                    {
+                        if (checkIn.Date >= DateTime.Today.Date) // Incheckning får inte vara på ett förflutet datum
+                        {
+                            break; // Giltigt incheckningsdatum
+                        }
+                        else
+                        {
+                            Console.WriteLine("Incheckningsdatum kan inte vara tidigare än dagens datum. Försök igen.");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Ogiltigt datumformat. Försök igen.");
+                    }
+                }
 
-                db.Bookings.Add(new Booking { CustomerId = customerId, RoomId = roomId, CheckInDate = checkIn, CheckOutDate = checkOut });
+                while (true)
+                {
+                    Console.Write("Utcheckningsdatum (YYYY-MM-DD): ");
+                    if (DateTime.TryParse(Console.ReadLine(), out checkOut))
+                    {
+                        if (checkOut.Date > checkIn.Date) // Utcheckningen måste vara senare än incheckningen
+                        {
+                            if (checkOut.Date >= DateTime.Today.Date) // Utcheckning får inte vara på ett förflutet datum
+                            {
+                                break; // Giltigt utcheckningsdatum
+                            }
+                            else
+                            {
+                                Console.WriteLine("Utcheckningsdatum kan inte vara tidigare än dagens datum. Försök igen.");
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("Utcheckningsdatum måste vara efter incheckningsdatum. Försök igen.");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Ogiltigt datumformat. Försök igen.");
+                    }
+                }
+
+                // Kolla om rummet redan är bokat under perioden
+                var overlappingBooking = db.Bookings
+                    .Where(b => b.RoomId == roomId &&
+                        b.CheckInDate < checkOut &&
+                        b.CheckOutDate > checkIn)
+                    .FirstOrDefault();
+
+                if (overlappingBooking != null)
+                {
+                    Console.WriteLine("Det här rummet är redan bokat under vald period.");
+                    return;
+                }
+
+                var room = db.Rooms.FirstOrDefault(r => r.Id == roomId);
+                if (room == null)
+                {
+                    Console.WriteLine("Rummet hittades inte.");
+                    return;
+                }
+
+                // Beräkna antal nätter
+                int nights = (checkOut - checkIn).Days;
+
+                // Använd GetPricePerNight-metoden för att beräkna priset
+                decimal pricePerNight = room.GetPricePerNight();
+                decimal totalPrice = pricePerNight * nights;
+
+                Console.WriteLine($"Bokningen kommer att kosta {totalPrice} kr för {nights} nätter.");
+
+                // Skapa bokningen med det beräknade totalpriset
+                db.Bookings.Add(new Booking
+                {
+                    CustomerId = customerId,
+                    RoomId = roomId,
+                    CheckInDate = checkIn,
+                    CheckOutDate = checkOut,
+                    TotalPrice = totalPrice // Sätt det beräknade totalpriset
+                });
+
                 db.SaveChanges();
                 Console.WriteLine("Bokning tillagd!");
             }
+
+
 
             static void ShowRooms(ApplicationDbContext db)
             {
