@@ -10,32 +10,40 @@ namespace HotellAppDB.Data
     {
         public int Id { get; set; }
         public string RoomNumber { get; set; } = string.Empty;
-        public string Type { get; set; } = string.Empty; // Enkel och Dubbel rum
-        public decimal PricePerNight { get; set; }
-        public bool IsAvailable { get; set; } = true;
+        public string Type { get; set; } = string.Empty; 
+        public int ExtraBeds { get; set; } = 0; 
 
-        public int ExtraBeds { get; set; } = 0; // Gäller bara för dubbelrum
+        
+        public decimal PricePerNight
+        {
+            get
+            {
+                if (Type == "Enkel")
+                    return 250;
+                if (Type == "Dubbel")
+                    return 500;
+                if (Type == "Dubbel med en extra säng")
+                    return 600;
+                if (Type == "Dubbel med två extra sängar")
+                    return 700;
+                return 0;
+            }
+        }
 
         public List<Booking> Bookings { get; set; } = new();
 
-        public decimal GetPricePerNight()
+        public Room(string roomNumber, string type, int extraBeds = 0)
         {
-            if (Type == "Enkel")
-            {
-                return 250; // Pris för enkelrum
-            }
-            else if (Type == "Dubbel")
-            {
-                if (ExtraBeds == 0)
-                    return 500; // Pris för dubbelrum utan extra säng
-                else if (ExtraBeds == 1)
-                    return 600; // Pris för dubbelrum med 1 extra säng
-                else if (ExtraBeds == 2)
-                    return 700; // Pris för dubbelrum med 2 extra sängar
-            }
-
-            return 0;
+            RoomNumber = roomNumber;
+            Type = type;
+            ExtraBeds = extraBeds;
         }
 
+        
+        public decimal CalculateTotalPrice(DateTime checkInDate, DateTime checkOutDate)
+        {
+            int nights = (checkOutDate - checkInDate).Days;
+            return PricePerNight * nights;
+        }
     }
 }

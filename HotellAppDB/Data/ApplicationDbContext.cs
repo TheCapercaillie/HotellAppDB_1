@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HotellAppDB.Data
 {
-    internal class ApplicationDbContext : DbContext
+    public class ApplicationDbContext : DbContext
     {
 
         public DbSet<Customer> Customers { get; set; }
@@ -32,6 +32,8 @@ namespace HotellAppDB.Data
                 optionsBuilder.UseSqlServer(@"Server=localhost;Database=HotellAppDB;Trusted_Connection=True;TrustServerCertificate=true;");
             }
         }
+
+        
 
 
     }
